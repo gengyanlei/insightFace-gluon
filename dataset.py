@@ -14,6 +14,9 @@ import numpy as np
 __all__ = ['DataLoad', 'transformer']
 
 class DataLoad(gluon.data.Dataset):
+    '''
+        若后续使用在Dataloader中使用batchify_fn(callable), 则建议返回的image,label为numpy, 便于后续函数进行修改，然后转成mxnet.ndarray !!!
+    '''
     def __init__(self, txt_path, transformer=None):
         '''
         :param txt_path:    train or val txt path
@@ -58,7 +61,7 @@ def transformer(resize=(112,112), is_train=True):
                                         transforms.RandomColorJitter(brightness=0.2,
                                                                      contrast=0.2,
                                                                      saturation=0.2,
-                                                                     hue=0.2),
+                                                                     hue=0.2),  # why no transforms.RandomApply ???
                                         transforms.ToTensor(),
                                         transforms.Normalize(mean=(0.485, 0.456, 0.406),  # RGB
                                                              std=(0.229, 0.224, 0.225))
