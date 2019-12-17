@@ -157,7 +157,10 @@ def train(args, loader, model, ctx, optimiser):
         checkpoint_save_dir = os.path.join('./checkpoint', checkpoint_dir)
         check_path(checkpoint_save_dir)
         save_path = os.path.join(checkpoint_save_dir, 'weights_epoch%d_%.4f_%.4f.params' % (epoch, val_acc/(vstep * len(ctx)), val_mae/(vstep * len(ctx))))
-        model.save_parameters(save_path)
+        # 2种 保存方式，建议采用第2种export，网络结构和参数的。
+        model.save_parameters(save_path)  # 只保存参数，导入时只能用load_parametrs; 若想同时保存网络结构和参数，请使用export
+        # model.export(os.path.join(checkpoint_save_dir, 'gender-age'), epoch)
+        # symbol 一般在epoch or batch call_back里面调用 mxnet.model.save_checkpoint; 导入时采用 mxnet.model.load_checkpoint; 同时保存网络结构和参数
 
     return
 
@@ -178,8 +181,21 @@ def main():
     if args.use_hybrid:
         model.hybridize()
 
-    # 继续训练，导入之前的参数
+    # 继续训练，导入之前的参数,若之前采用的save_parameters(),则直接load_parameters()
+    if args.resume:
+        model.load_parameters(args.resume)
 
+    # 选择性fine-tune, 需要 keys一致，values shape一致; 这里采用导入是export保存的模型
+    # if args.resume:
+    #     sym, arg_params, aux_params = mx.model.load_checkpoint(args.resume)  # json params
+    #     net_params = model.collect_params()
+    #     # 导入arg_params, aug_params
+    #     for param in arg_params:
+    #         if param in net_params:
+    #             net_params[param]._load_init(arg_params[param], ctx=ctx)
+    #     for param in aux_params:
+    #         if param in net_params:  # aux_params[param].shape == net_params[param].shape
+    #             net_params[param]._load_init(aux_params[param], ctx=ctx)
 
     # 定义优化器
     optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': 0.01, 'wd': 0.0001, 'momentum': 0.9, } )
