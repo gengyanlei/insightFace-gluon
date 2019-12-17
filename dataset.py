@@ -44,7 +44,7 @@ class DataLoad(gluon.data.Dataset):
         plabel = np.zeros([self.num_class,])
         # gender
         plabel[0] = label[0]
-        # age
+        # age 100个2分类
         plabel[1:label[1]] = 1
         # glasses
         plabel[101] = label[2]
