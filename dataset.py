@@ -17,7 +17,7 @@ class DataLoad(gluon.data.Dataset):
     '''
         若后续使用在Dataloader中使用batchify_fn(callable), 则建议返回的image,label为numpy, 便于后续函数进行修改，然后转成mxnet.ndarray !!!
     '''
-    def __init__(self, txt_path, transformer=None):
+    def __init__(self, txt_path, transformer=None, num_class=103):
         '''
         :param txt_path:    train or val txt path
         :param transformer:   train_transform test_transform, Not None
@@ -27,6 +27,7 @@ class DataLoad(gluon.data.Dataset):
             self.lines = f.readlines()
         f.close()
 
+        self.num_class = num_class
         self.transform = transformer
         if self.transform is None:
             assert 'transform must be not None'
@@ -38,8 +39,19 @@ class DataLoad(gluon.data.Dataset):
         # item -> index
         line = self.lines[item].strip('\n').split()  # 若不写，则去掉所有的空格, \t
         # mxnet label 需要转成mxnet.ndarray, 可以使用mx.nd.array()；而pytorch也需要转成tensor-ndarray
-        label = [int(i) for i in line[1:-1]]  # 0->index -1->img_name ; gender-age-glasses-mask
-        label = mx.nd.array(label, dtype=np.float32)  # 需要转成 float32
+        label = [int(i) for i in line[1:-1]]  # 0->index -1->img_name ; index-gender-age-glasses-mask-img_name
+        # 分别给gender-age-glasses-mask赋予对应的标签
+        plabel = np.zeros([self.num_class,])
+        # gender
+        plabel[0] = label[0]
+        # age
+        plabel[1:label[1]] = 1
+        # glasses
+        plabel[101] = label[2]
+        # mask
+        plabel[102] = label[3]
+
+        label = mx.nd.array(plabel, dtype=np.float32)  # 需要转成 float32
 
         img = mx.image.imread(line[-1])  # All converted to RGB 3 channels
         # transform
