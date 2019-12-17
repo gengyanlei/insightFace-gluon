@@ -97,7 +97,10 @@ def train(args, loader, model, ctx, optimiser):
     :param optimiser:
     :return:
     '''
-    # 继续训练 continue-learning
+    # 继续训练时，需要同步学习率
+    if args.resume:
+        if args.start_epoch > 0:
+            lr_scheduler(epoch=args.start_epoch, optimiser=optimiser, steps=40, rate=0.1)
 
     # 训练
     for epoch in range(args.start_epoch, args.max_epoch):
@@ -153,7 +156,7 @@ def train(args, loader, model, ctx, optimiser):
         checkpoint_dir = '%s_%s_%d-%d-%d-%d-%d-%d' % ( args.backbone, args.dataset, time.year, time.month, time.day, time.hour, time.minute, time.second)
         checkpoint_save_dir = os.path.join('./checkpoint', checkpoint_dir)
         check_path(checkpoint_save_dir)
-        save_path = os.path.join(checkpoint_save_dir, 'weights_epoch%d_%.4f_%.4f.pth' % (epoch, val_acc/(vstep * len(ctx)), val_mae/(vstep * len(ctx))))
+        save_path = os.path.join(checkpoint_save_dir, 'weights_epoch%d_%.4f_%.4f.params' % (epoch, val_acc/(vstep * len(ctx)), val_mae/(vstep * len(ctx))))
         model.save_parameters(save_path)
 
     return
@@ -174,6 +177,9 @@ def main():
     model.initialize(ctx=ctx)
     if args.use_hybrid:
         model.hybridize()
+
+    # 继续训练，导入之前的参数
+
 
     # 定义优化器
     optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': 0.01, 'wd': 0.0001, 'momentum': 0.9, } )
