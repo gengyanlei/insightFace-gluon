@@ -1,7 +1,7 @@
 '''
     注释：
-    insightface gulon version
-    主函数
+    insightface gender-age gulon version
+    main function
 '''
 import os
 import datetime
@@ -76,15 +76,25 @@ def batch_fn(batch, ctx):
     label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
     return data, label
 
+def lr_scheduler(epoch, optimiser, steps, rate=0.1):
+    '''
+    :param epoch:      int, current epoch
+    :param optimiser:  optimiser,
+    :param steps:      int, every steps's epoches
+    :param rate:       float, lr update rate
+    :return:  update lr
+    '''  #个人喜欢自定义学习率设置函数，当然可以使用mxnet自带的update_lr_func, pytorch也是如此
+    lr = optimiser.learning_rate * (rate ** (epoch // steps))
+    optimiser.set_learning_rate(lr)
+    return  # 不需要返回optimiser，仍然会更新lr
 
-def train(args, loader, model, ctx, optimiser, loss_func):
+def train(args, loader, model, ctx, optimiser):
     '''
     :param args:
     :param loader:     train/test dataloader
     :param model:
     :param ctx:
     :param optimiser:
-    :param loss_func:  loss function
     :return:
     '''
     # 继续训练 continue-learning
@@ -98,6 +108,9 @@ def train(args, loader, model, ctx, optimiser, loss_func):
         val_mae = 0.0
         train_cs5 = 0.0
         val_cs5 = 0.0
+
+        # 更新学习率， every 10 epoch update lr
+        lr_scheduler(epoch=epoch, optimiser=optimiser, steps=40, rate=0.1)
 
         # 训练阶段
         for step, batch in enumerate(loader['train']):
@@ -163,12 +176,12 @@ def main():
         model.hybridize()
 
     # 定义优化器
-    optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': 0.01} )
+    optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': 0.01, 'wd': 0.0001, 'momentum': 0.9, } )
 
-    # 定义损失函数
-    cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
+    print('base learning rate:', optimiser.learning_rate)
+
     # 开始训练-测试
-    train(args, loader, model, ctx, optimiser, cross_entropy)
+    train(args, loader, model, ctx, optimiser)
 
 if __name__ == '__main__':
     main()

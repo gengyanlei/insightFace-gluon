@@ -1,5 +1,5 @@
 '''
-    注释：
+    注释 Note：
     mxnet data imread API （gluon imperartive version）
     与pytorch 读取数据风格基本一致，但是有着本质的区别：
     pytorch：数据增强是基于PIL进行操作的，然后Totensor
@@ -86,14 +86,6 @@ def transformer(resize=(112,112), is_train=True):
                                         ])
 
     return transform
-
-
-
-
-
-
-
-
 
 
 
