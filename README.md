@@ -5,8 +5,9 @@ mxnet: 1.5.1, python: 3.6, cuda: 9.0
 
 we modify some code,for gender-age-glasses-mask predict! if you want to use my code,please modify dataload class,just delete glasses and mask!  
 
-########################################## 
-need to add continue learning...
+##########################################  
+
+need to check 选择性fine-tune!!!
 
 add update lr function [2019-12-17]
 
