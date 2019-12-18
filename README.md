@@ -7,7 +7,15 @@ we modify some code,for gender-age-glasses-mask predict! if you want to use my c
 
 ##########################################  
 
-need to check 选择性fine-tune!!!
+How To Use My Code？ 
+
+1. main.py modify corresponding params  
+
+2. dataset.py delete glasses and mask  
+
+###########################################  
+
+add lr_scheduler params in optimiser, Not recommended!![2019-12-18]
 
 add update lr function [2019-12-17]
 
