@@ -21,6 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="insightface gender-age Parametrs")
 
     parser.add_argument('--num_class', dest='num_class', type=int, default=103, help="Class number")
+    parser.add_argument('--lr', dest='lr', type=float, default=0.01, help="learning rate")
     parser.add_argument('--max_epoch', dest='max_epoch', type=int, default=500, help="max epoch")
     parser.add_argument('--start_epoch', dest='start_epoch', type=int, default=0, help="max epoch")
     parser.add_argument('--resume', dest='resume', default=None, type=str, help='continue learning from where checkpoint')
@@ -198,8 +199,12 @@ def main():
     #         if param in net_params:  # aux_params[param].shape == net_params[param].shape
     #             net_params[param]._load_init(aux_params[param], ctx=ctx)
 
+    # 学习率设置 update lr， 在 optimizer_params 中设置 学习率变化
+    # lr_scheduler = mx.lr_scheduler.FactorScheduler(step=40, factor=0.1, base_lr=args.lr)
+    # optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
+
     # 定义优化器
-    optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': 0.01, 'wd': 0.0001, 'momentum': 0.9, } )
+    optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': args.lr, 'wd': 0.0001, 'momentum': 0.9, } )
 
     print('base learning rate:', optimiser.learning_rate)
 
