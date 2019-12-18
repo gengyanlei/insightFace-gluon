@@ -185,7 +185,8 @@ def main():
     if args.resume:
         model.load_parameters(args.resume)
 
-    # 选择性fine-tune, 需要 keys一致，values shape一致; 这里采用导入是export保存的模型
+    # 选择性fine-tune, 需要 keys一致，values shape一致; 这里采用导入是export保存的模型；
+    # model.collect_params 会自动同步到网络中，因此不需要再load进去，与pytorch不太一样。
     # if args.resume:
     #     sym, arg_params, aux_params = mx.model.load_checkpoint(args.resume)  # json params
     #     net_params = model.collect_params()
