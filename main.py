@@ -12,6 +12,8 @@ import mxnet as mx
 from mxnet.gluon import nn
 from mxnet import gluon
 from mxnet import autograd
+import mxboard
+# import tensorboard  # 查看时才用到
 
 from models.load_model import MainModel
 from dataset import DataLoad, transformer
@@ -23,6 +25,7 @@ def parse_args():
     parser.add_argument('--num_class', dest='num_class', type=int, default=103, help="Class number")
     parser.add_argument('--lr', dest='lr', type=float, default=0.01, help="learning rate")
     parser.add_argument('--max_epoch', dest='max_epoch', type=int, default=500, help="max epoch")
+    parser.add_argument('--steps', dest='steps', type=int, default=40, help="max epoch")
     parser.add_argument('--start_epoch', dest='start_epoch', type=int, default=0, help="max epoch")
     parser.add_argument('--resume', dest='resume', default=None, type=str, help='continue learning from where checkpoint')
     parser.add_argument('--backbone', dest='backbone', type=str, default='resnet51', help="Backbone")  # 专门用于gender-age
@@ -101,7 +104,7 @@ def train(args, loader, model, ctx, optimiser):
     # 继续训练时，需要同步学习率
     if args.resume:
         if args.start_epoch > 0:
-            lr_scheduler(epoch=args.start_epoch, optimiser=optimiser, steps=40, rate=0.1)
+            lr_scheduler(epoch=args.start_epoch, optimiser=optimiser, steps=args.steps, rate=0.1)
 
     # 训练
     for epoch in range(args.start_epoch, args.max_epoch):
@@ -114,7 +117,7 @@ def train(args, loader, model, ctx, optimiser):
         val_cs5 = 0.0
 
         # 更新学习率， every 10 epoch update lr
-        lr_scheduler(epoch=epoch, optimiser=optimiser, steps=40, rate=0.1)
+        lr_scheduler(epoch=epoch, optimiser=optimiser, steps=args.steps, rate=0.1)
 
         # 训练阶段
         for step, batch in enumerate(loader['train']):
