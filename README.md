@@ -15,6 +15,10 @@ How To Use My Code？
 
 2. dataset.py delete glasses and mask  
 
+###########################################
+
+face-gender-age identify ideas:  face-gender-age-ideas.pdf
+
 ###########################################  
 
 add lr_scheduler params in optimiser, Not recommended!![2019-12-18]
