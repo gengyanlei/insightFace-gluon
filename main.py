@@ -80,15 +80,16 @@ def batch_fn(batch, ctx):
     label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
     return data, label
 
-def lr_scheduler(epoch, optimiser, steps, rate=0.1):
+def lr_scheduler(args, epoch, optimiser, steps, rate=0.1):
     '''
+    :param args:       get lr
     :param epoch:      int, current epoch
     :param optimiser:  optimiser,
     :param steps:      int, every steps's epoches
     :param rate:       float, lr update rate
     :return:  update lr
     '''  #个人喜欢自定义学习率设置函数，当然可以使用mxnet自带的update_lr_func, pytorch也是如此
-    lr = optimiser.learning_rate * (rate ** (epoch // steps))
+    lr = args.lr * (rate ** (epoch // steps))
     optimiser.set_learning_rate(lr)
     return  # 不需要返回optimiser，仍然会更新lr
 
@@ -101,6 +102,8 @@ def train(args, loader, model, ctx, optimiser):
     :param optimiser:
     :return:
     '''
+    # 采用mxboard 记录损失， 精度， 
+
     # 继续训练时，需要同步学习率
     if args.resume:
         if args.start_epoch > 0:
@@ -116,11 +119,12 @@ def train(args, loader, model, ctx, optimiser):
         train_cs5 = 0.0
         val_cs5 = 0.0
 
-        # 更新学习率， every 10 epoch update lr
+        # 更新学习率， every steps's epoch update lr
         lr_scheduler(epoch=epoch, optimiser=optimiser, steps=args.steps, rate=0.1)
 
         # 训练阶段
         for step, batch in enumerate(loader['train']):
+            batch_loss = 0.0  # 用于记录loss
             # split data, 吐槽一下，不如pytorch的nn.DataParallel
             data_parts, label_parts = batch_fn(batch, ctx)
             with autograd.record(train_mode=True):  # 记录梯度变化的位置
@@ -129,8 +133,9 @@ def train(args, loader, model, ctx, optimiser):
                 losses = gender_age_loss(preds, label_parts)
                 for loss_i in losses:
                     loss_i.backward()
+                    batch_loss += loss_i.asscalar()
                     train_loss += loss_i.asscalar()
-            optimiser.step( args.tpb*len(ctx) )
+            optimiser.step( args.tpb*len(ctx) )  # 如果采用了reduce操作，那么这里可以设置成1；或者动态获取input的shape[0]*gpu_num
             # evaluation index
             train_acc += sum([gender_acc(pred, label) for pred,label in zip(preds, label_parts)])
             train_mae += sum([age_mae(pred, label) for pred,label in zip(preds, label_parts)])
