@@ -80,26 +80,26 @@ def batch_fn(batch, ctx):
     label = gluon.utils.split_and_load(batch[1], ctx_list=ctx, batch_axis=0)
     return data, label
 
-def lr_scheduler(base_lr, epoch, optimiser, steps, rate=0.1):
+def lr_scheduler(base_lr, epoch, optimizer, steps, rate=0.1):
     '''
     :param base_lr:    float baseline learning rate
     :param epoch:      int, current epoch
-    :param optimiser:  optimiser,
+    :param optimizer:  optimizer,
     :param steps:      int, every steps's epoches
     :param rate:       float, lr update rate
     :return:  update lr
     '''  #个人喜欢自定义学习率设置函数，当然可以使用mxnet自带的update_lr_func, pytorch也是如此
     lr = base_lr * (rate ** (epoch // steps))
-    optimiser.set_learning_rate(lr)
-    return  # 不需要返回optimiser，仍然会更新lr
+    optimizer.set_learning_rate(lr)
+    return  # 不需要返回optimizer，仍然会更新lr
 
-def train(args, loader, model, ctx, optimiser):
+def train(args, loader, model, ctx, optimizer):
     '''
     :param args:
     :param loader:     train/test dataloader
     :param model:
     :param ctx:
-    :param optimiser:
+    :param optimizer:
     :return:
     '''
     # 采用mxboard 记录损失， 精度
@@ -107,7 +107,7 @@ def train(args, loader, model, ctx, optimiser):
     # 继续训练时，需要同步学习率，但是这里不需要，因为不需要lr_scheduler.step，所以注释掉与否不影响
     if args.resume:
         if args.start_epoch > 0:
-            lr_scheduler(base_lr=args.lr, epoch=args.start_epoch, optimiser=optimiser, steps=args.steps, rate=0.1)
+            lr_scheduler(base_lr=args.lr, epoch=args.start_epoch, optimizer=optimizer, steps=args.steps, rate=0.1)
 
     # 训练
     for epoch in range(args.start_epoch, args.max_epoch):
@@ -120,7 +120,7 @@ def train(args, loader, model, ctx, optimiser):
         val_cs5 = 0.0
 
         # 更新学习率， every steps's epoch update lr
-        lr_scheduler(base_lr=args.lr, epoch=epoch, optimiser=optimiser, steps=args.steps, rate=0.1)
+        lr_scheduler(base_lr=args.lr, epoch=epoch, optimizer=optimizer, steps=args.steps, rate=0.1)
 
         # 训练阶段
         for step, batch in enumerate(loader['train']):
@@ -135,7 +135,7 @@ def train(args, loader, model, ctx, optimiser):
                     loss_i.backward()
                     batch_loss += loss_i.asscalar()
                     train_loss += loss_i.asscalar()
-            optimiser.step( args.tpb*len(ctx) )  # 如果采用了reduce操作，那么这里可以设置成1；或者动态获取input的shape[0]*gpu_num
+            optimizer.step( args.tpb*len(ctx) )  # 如果采用了reduce操作，那么这里可以设置成1；或者动态获取input的shape[0]*gpu_num
             # evaluation index
             train_acc += sum([gender_acc(pred, label) for pred,label in zip(preds, label_parts)])
             train_mae += sum([age_mae(pred, label) for pred,label in zip(preds, label_parts)])
@@ -207,17 +207,17 @@ def main():
     #         if param in net_params:  # aux_params[param].shape == net_params[param].shape
     #             net_params[param]._load_init(aux_params[param], ctx=ctx)
 
-    # 学习率设置 update lr， 在 optimizer_params 中设置 学习率变化
-    # lr_scheduler = mx.lr_scheduler.FactorScheduler(step=40, factor=0.1, base_lr=args.lr)
+    # 学习率设置 update lr， 在 optimizer_params 中设置 学习率变化，symbol API 在epoch_callback中设置保存模型，更改学习率
+    # lr_scheduler = mx.lr_scheduler.FactorScheduler(step=40, factor=0.1, base_lr=args.lr)  # 可以采用lr_scheduler.__cal__(num_update=epoch) 实现pytorch的学习率按照epoch更改
     # optimizer_params = {'wd': opt.wd, 'momentum': opt.momentum, 'lr_scheduler': lr_scheduler}
 
     # 定义优化器
-    optimiser = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': args.lr, 'wd': 0.0001, 'momentum': 0.9, } )
+    optimizer = gluon.Trainer(params=model.collect_params(), optimizer='sgd', optimizer_params={'learning_rate': args.lr, 'wd': 0.0001, 'momentum': 0.9, } )
 
-    print('base learning rate:', optimiser.learning_rate)
+    print('base learning rate:', optimizer.learning_rate)
 
     # 开始训练-测试
-    train(args, loader, model, ctx, optimiser)
+    train(args, loader, model, ctx, optimizer)
 
 if __name__ == '__main__':
     main()
