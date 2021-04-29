@@ -19,6 +19,7 @@ insightFace-gender-age mxnet.gluon
 ```
     we modify some code,for gender-age-glasses-mask predict! 
     if you want to use my code,please modify dataload class,just delete glasses and mask!  
+    Maybe there is a small bug. 
 ```
 
 ### Some idea
